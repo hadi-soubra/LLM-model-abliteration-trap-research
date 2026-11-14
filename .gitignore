@@ -1,0 +1,8 @@
+results/raw/
+*.safetensors
+*.bin
+*.pt
+checkpoints/
+wandb/
+__pycache__/
+.env
