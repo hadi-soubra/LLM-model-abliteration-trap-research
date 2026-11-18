@@ -9,7 +9,7 @@ import json
 import torch
 
 from abliteration.ablation import removing
-from shared.config import ROOT, load_config
+from shared.config import ROOT, config_from_cli, data_dir
 from shared.model import generate, load_model
 
 REFUSAL_PHRASES = ["I'm sorry", "I am sorry", "I cannot", "I can't", "I apologize", "As an AI"]
@@ -21,13 +21,12 @@ def refuses(text: str) -> bool:  # a rough eye-check only: it cannot tell a real
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--layer", type=int, help="which layer's arrow to remove (default: the one chosen in step 4)")
-args = parser.parse_args()
+cfg, args = config_from_cli(parser)
 if args.layer is None:
-    args.layer = json.loads((ROOT / "data" / "chosen_layer.json").read_text())["layer"]
+    args.layer = json.loads((data_dir(cfg) / "chosen_layer.json").read_text())["layer"]
 
-cfg = load_config("configs/laptop_qwen05b.yaml")
-prompts = json.loads((ROOT / "data" / "prompts.json").read_text())
-r = torch.load(ROOT / "data" / "directions.pt")[args.layer]
+prompts = json.loads((data_dir(cfg) / "prompts.json").read_text())
+r = torch.load(data_dir(cfg) / "directions.pt")[args.layer]
 assert not torch.isnan(r).any(), "layer 0 has no direction (see step 3); pick another layer"
 model, tokenizer = load_model(cfg)
 

@@ -9,32 +9,34 @@ Implementation budget: ~20 days. Topic approved by the instructor.
 Two-layer defense for small open-weight chat models:
 
 1. **Hardness:** make training-free abliteration as costly as possible (more directions, more search, more compute needed to remove refusal).
-2. **Self-destruct (payoff denial):** if an attacker does remove refusal, the stripped model is useless to them: at minimum its answers to harmful requests become garbage; ideally general capability collapses too. The toy test showed the harmful-answers version is the achievable target against adaptive (affine) attacks.
+2. **Self-destruct (payoff denial):** if an attacker does remove refusal, the stripped model is useless to them: at minimum its answers to harmful requests become garbage; ideally general capability collapses too. The harmful-answers version is the primary target; general collapse is a stretch goal.
 
 Framing: we do NOT claim abliteration becomes impossible. Open weights can always be fine-tuned. We claim measurable increases in attacker cost and a measurable drop in the attacker's payoff (useful harmful answers) after a successful attack, while the defended model stays useful on normal tasks.
 
 ## DEADLINES: presentation Nov 24, 2026 (results frozen Nov 21); final paper mid-December 2026. Reduced scope for the presentation, this overrides the rest of this file. After Nov 24, extra experiments for the paper (A3, baselines, repair test) are allowed.
 
-- ONE model: Qwen2.5-1.5B-Instruct (develop on Qwen2.5-0.5B locally on RTX 3060 6GB first).
+- ONE main model: Qwen2.5-7B-Instruct, run overnight on the RTX 5090 (see Hardware). Develop and debug on Qwen2.5-0.5B-Instruct on the laptop first (same family, same code).
 - Layer 2 (trap) ONLY. Layer 1 hardness is cited as combinable future work.
 - Baselines: undefended model; ablation "trap trained vs A1 only".
-- Attacks: A1, A1b, A2 (3 rounds), A4 if time. A3/A5/repair test = future work.
-- Schedule:
-  - Nov 14-15: milestone 1 (data, eval, A1, A1b) locally on 0.5B, then on pod with 1.5B.
-  - Nov 16-17: trap training (LoRA) on 1.5B.
-  - Nov 18: GO/NO-GO. PASS if best-attack useful-harmful-answer rate is clearly below undefended and clean GSM8K drops only a few points. FAIL -> negative-result paper (A1 vs A1b on undefended + analysis of why the trap fails).
-  - Nov 19-20: A4, second seed, A3 (Heretic-style search) if time.
+- Attacks: trap v1 is trained against A1 + A1b and tested against A1, A1b, A2 (3 rounds) and A4; A3 (Heretic) and A5 if time. Every attack also runs on the undefended model in the same batch. Attacks that get through can go into training for a trap v2.
+- Schedule (current plan; the journal page of the notebook tracks status):
+  - Nov 14-17: Experiment 1, A1 rebuilt step by step on 0.5B (proof of concept). Done.
+  - Next: Experiment 2, Qwen2.5-7B + the ruler (judge, GSM8K, XSTest) + baseline: no attack, A1, A1b. Overnight on the 5090.
+  - Then: Experiment 3, the trap: developed on 0.5B on the laptop, trained on 7B overnight. GO/NO-GO on its first result: PASS if best-attack useful-harmful-answer rate is clearly below undefended and clean GSM8K drops only a few points. FAIL -> fallback paper (see Fallback).
+  - Then: attacks against the trap (A1, A1b, A2, A4; A3, A5 if time).
   - Nov 21: FREEZE results, make figures/tables. Nov 22-23: slides + rehearsal. Nov 24: present.
-  - Nov 25 to mid-Dec: extra experiments for the paper (A3, extended-refusal/ART baselines, repair test, maybe a 3B model), then write the paper.
+  - Nov 25 to mid-Dec: extra experiments for the paper (A3, A5, extended-refusal/ART baselines, repair test, a second model size), then write the paper.
 
 ## Working style (IMPORTANT: Hadi is learning, not vibe coding)
 
 - Before writing any component, explain in plain words what it does and why, and wait for "go".
 - Small steps: one function or file at a time, at most ~60 lines per step. No big multi-file dumps.
+- Laptop steps: Hadi runs each one himself and we read the output together. GPU-PC runs: batched into one overnight run script that Hadi's friend starts; we read the results together the next day.
 - After each step, give Hadi one thing to verify himself (a command to run, a number to check, a line to read) and say what result to expect.
-- Leave the core math for Hadi to write himself (difference of means, projection `h - r r^T h`, weight orthogonalization, the trap loss): give a skeleton with TODOs and a test, then review his version.
+- Claude writes all code, including the core math (Hadi's decision, 17 Nov; he wrote the difference of means and the projection himself before that). Explain the math in plain words and give a test he can run.
 - Every component gets a sanity test he can run, e.g.: the direction has norm 1; after ablation, `h @ r` is ~0; orthogonalized weights give the same output as hook ablation; refusal rate on harmful prompts is high before any attack.
 - Keep a running LEARNING_LOG.md: per session, what was built, the key idea in 2-3 sentences, and any number that surprised us.
+- Explanations, results and figures go in the local notebook (report/, a multi-page book); all tracking (plan, status, decisions) only in its journal page.
 - When something fails, explain the cause before fixing it.
 
 ## Background: how abliteration works
@@ -54,7 +56,7 @@ Reference: Arditi et al. 2024, "Refusal in Language Models Is Mediated by a Sing
 ## Attack suite (evaluate every defense against all of these)
 
 - A1: single-direction abliteration (Arditi et al.)
-- A1b: affine abliteration: reset the direction to its average harmless level instead of zero (one extra constant; can be baked into the embedding matrix). In our toy test this walked straight past a trap trained only against A1, so every trap must be trained and tested against it.
+- A1b: affine abliteration: reset the direction to its average harmless level instead of zero (one extra constant; can be baked into the embedding matrix). An attacker who knows the trap reacts to the direction sitting at zero can choose another value, so every trap must be trained and tested against it.
 - A2: multi-direction abliteration (SVD / multiple diff-of-means directions)
 - A3: automated search over layers and strengths (Heretic-style)
 - A4: "cleaned" direction attack that removes capability-overlapping components before ablating (Surgical Refusal Ablation style). This is the main adaptive attack against the self-destruct layer.
@@ -70,7 +72,7 @@ Reference: Arditi et al. 2024, "Refusal in Language Models Is Mediated by a Sing
   - Refusal on harmful prompts, including under simulated ablation (layer 1)
   - Collapse term on benign data in the ablated state (layer 2)
 - Recompute refusal direction(s) on the current model every K steps, otherwise the model just moves refusal to a new direction and the trap is avoidable. Note DeepRefusal found recomputing unstable; ReFAT and Fail-Closed made it work.
-- Toy proof of concept (toy_trap_demo.py, small MLP, synthetic data): ordinary model's best attack payoff 73% (useful harmful answers). Trap vs A1 only: A1 payoff 4%, but A1b bypasses it (59%). Trap vs A1 + A1b wrecking all answers: payoff 40%, clean accuracy 83% to 64%. Trap vs A1 + A1b wrecking only harmful answers: best-attack payoff 33%, clean accuracy 83% to 76%. Lessons: train against several attack variants; target the attacker's payoff (harmful answers) rather than all capability, because an affine edit barely changes normal inputs.
+- Design principles: train against several attack variants; target the attacker's payoff (harmful answers) rather than all capability, because an affine edit barely changes normal inputs.
 - Known threats to layer 2: capability-cleaned directions (SRA), other independent refusal directions (concept cones), KL-budgeted search that avoids collapsing edits, and repair by a small benign fine-tune (Lucki et al. 2025 show "removed" knowledge returns after 10 examples).
 
 ## Baselines
@@ -90,8 +92,9 @@ Reference: Arditi et al. 2024, "Refusal in Language Models Is Mediated by a Sing
 
 ## Models
 
-Candidates: Qwen2.5-1.5B-Instruct, Qwen2.5-3B-Instruct, Llama-3.2-3B-Instruct, Gemma-2-2B-it.
-First experiment: measure baseline refusal rate on each and pick models that refuse reliably before any attack.
+- Main: Qwen2.5-7B-Instruct (ungated, same family as the development model).
+- Development: Qwen2.5-0.5B-Instruct on the laptop.
+- Optional second size for the paper: Qwen2.5-1.5B or 3B.
 
 ## Data
 
@@ -102,7 +105,8 @@ First experiment: measure baseline refusal rate on each and pick models that ref
 
 ## Metrics
 
-- **Refusal / harmfulness:** use a judge model (Llama-Guard-3-1B or a StrongREJECT-style judge), not keyword matching. Keyword matching counts garbled output as "compliant".
+- **Refusal / harmfulness:** use a judge model, not keyword matching: Llama-Guard-3-8B (Llama-Guard-3-1B as fallback), with the judge's false-alarm rate on harmless answers reported next to every result; a StrongREJECT-style usefulness judge as an option. Keyword matching counts garbled output as "compliant".
+- **Decoding:** greedy with repetition penalty 1.05, identical for every model and attack.
 - **Generation length:** at least 256 new tokens, so delayed refusals are caught.
 - **Capability:** MMLU subset, GSM8K, ARC (before attack, after defense, after attack).
 - **Over-refusal:** XSTest safe prompts.
@@ -114,15 +118,15 @@ First experiment: measure baseline refusal rate on each and pick models that ref
 
 ## Hardware
 
-- Main: RunPod RTX 4090 (24GB), Community Cloud. Stop the pod when idle.
-- Backup: Kaggle T4/P100 (no bf16, slower) for long eval runs.
-- Local laptop RTX 3060 (6GB): not used for training.
+- Main: a friend's Windows PC with an RTX 5090 (32GB). Hadi has no direct access: runs are prepared as self-contained overnight scripts that the friend starts. Raw generations stay on that PC; only numbers and charts are sent back.
+- Laptop RTX 3050 (6GB): development, debugging, small-model work (0.5B), the notebook.
+- Backup: RunPod RTX 4090 (24GB) or Kaggle.
 
 ## Engineering conventions
 
-- Python, `transformers`, `peft`, `vllm` for generation, `torch` hooks for activation capture and ablation.
+- Python, `transformers` (generation; `vllm` optional), `peft`, `torch` hooks for activation capture and ablation.
 - All runs driven by config files, fixed seeds, results saved as JSON per run (model, defense, attack, metrics).
-- Push code to GitHub, checkpoints and results to a PRIVATE Hugging Face repo, so a dead pod loses nothing.
+- Push code to GitHub (public repo: code only, never data/ or report/), checkpoints and results to a PRIVATE Hugging Face repo.
 - Log compute (GPU type, hours) for every experiment: the paper needs clear compute reporting.
 
 ## Ethics rules (non-negotiable)
@@ -131,11 +135,6 @@ First experiment: measure baseline refusal rate on each and pick models that ref
 - Do not include harmful model outputs in the paper or logs committed to GitHub. Store raw generations locally/privately only.
 - Use standard public safety benchmarks only.
 
-## Timeline (20 days)
+## Fallback
 
-- Days 1-3: baselines, reproduce A1 abliteration, eval pipeline working
-- Days 4-10: defense training (hardness + self-destruct)
-- Days 11-15: full attack suite against all defenses and baselines
-- Days 16-17: ablations (each loss term, K for direction recompute, model size)
-- Days 18-20: tables, figures, writing
-- **Fallback:** if the self-destruct layer isn't working by day 12, pivot to a rigorous evaluation of hardness defenses against adaptive attacks (A1 to A4) with attacker-cost metrics. That is still a complete paper.
+- If the trap isn't working after its first results, pivot to a rigorous evaluation of existing (hardness) defenses against adaptive attacks (A1 to A4) with attacker-cost metrics. That is still a complete paper.

@@ -14,16 +14,16 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 import torch
 
 from abliteration.ablation import removing
-from shared.config import ROOT, load_config
+from shared.config import ROOT, config_from_cli, data_dir
 from shared.model import chat_reply, load_model
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--port", type=int, default=8000)
-port = parser.parse_args().port
-cfg = load_config("configs/laptop_qwen05b.yaml")
-prompts = json.loads((ROOT / "data" / "prompts.json").read_text())
-layer = json.loads((ROOT / "data" / "chosen_layer.json").read_text())["layer"]
-r = torch.load(ROOT / "data" / "directions.pt")[layer]
+cfg, args = config_from_cli(parser)
+port = args.port
+prompts = json.loads((data_dir(cfg) / "prompts.json").read_text())
+layer = json.loads((data_dir(cfg) / "chosen_layer.json").read_text())["layer"]
+r = torch.load(data_dir(cfg) / "directions.pt")[layer]
 model, tokenizer = load_model(cfg)
 gpu = threading.Lock()  # one answer at a time: there is one model on the GPU
 

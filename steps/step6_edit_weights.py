@@ -11,13 +11,13 @@ from abliteration.ablation import removing
 from abliteration.activations import record_last_word
 from abliteration.scoring import first_word_logits, kl_divergence
 from abliteration.weights import edit_weights
-from shared.config import ROOT, load_config
+from shared.config import ROOT, config_from_cli, data_dir
 from shared.model import generate, load_model
 
-cfg = load_config("configs/laptop_qwen05b.yaml")
-prompts = json.loads((ROOT / "data" / "prompts.json").read_text())
-layer = json.loads((ROOT / "data" / "chosen_layer.json").read_text())["layer"]
-r = torch.load(ROOT / "data" / "directions.pt")[layer]
+cfg, _ = config_from_cli()
+prompts = json.loads((data_dir(cfg) / "prompts.json").read_text())
+layer = json.loads((data_dir(cfg) / "chosen_layer.json").read_text())["layer"]
+r = torch.load(data_dir(cfg) / "directions.pt")[layer]
 model, tokenizer = load_model(cfg)
 questions, bs = prompts["watch"] + prompts["harmless"][:2], cfg["batch_size"]
 

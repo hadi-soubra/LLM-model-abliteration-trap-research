@@ -1,0 +1,33 @@
+# Settings for the GPU PC (RTX 5090, 32 GB of GPU memory).
+model: Qwen/Qwen2.5-7B-Instruct
+device: cuda          # "cuda" = the GPU; use "cpu" if there is no GPU
+dtype: bfloat16       # number format for the weights: half the memory of float32
+seed: 0               # fixes which prompts get picked, so every run picks the same ones
+batch_size: 32        # how many prompts go through the model at once
+
+prompts:
+  n_harmful: 128      # harmful requests (AdvBench) used to find the refusal direction
+  n_harmless: 128     # harmless requests (Alpaca) used to find the refusal direction
+  n_watch: 10         # extra harmful requests, only used to read the model's answers before and after
+  n_check: 32         # new harmful AND new harmless requests, only used to score the candidate arrows (step 4)
+  n_harmless_eval: 100  # new harmless requests for the ruler: how often the judge raises false alarms
+
+choose:                 # step 4: rules for choosing the best arrow
+  max_side_effect: 0.1  # how much removing an arrow may change harmless first-word probabilities (KL); Arditi uses 0.1
+
+decoding:               # how answers are generated in the measurements (Experiment 2 on)
+  repetition_penalty: 1.05   # Qwen's own small penalty against loops; the same for every model and attack
+  max_new_tokens: 256
+  gsm8k_max_new_tokens: 512  # math answers need room for the working
+
+eval:                   # the ruler
+  batch_size: 64
+  n_harmful: 200        # HarmBench
+  n_harmless: 100       # Alpaca (the harmless_eval group)
+  n_xstest: 250         # XSTest safe questions
+  n_gsm8k: 1319         # GSM8K test problems
+
+judge:
+  name: meta-llama/Llama-Guard-3-8B
+  fallback: meta-llama/Llama-Guard-3-1B   # used if access to the 8B has not been granted
+  batch_size: 32

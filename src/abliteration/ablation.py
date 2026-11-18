@@ -1,7 +1,8 @@
-"""Step 4: remove the refusal direction from everything the model computes, while it runs.
+"""Remove the refusal direction (A1) or pin it to its harmless level (A1b) while the model runs.
 
-remove_direction()  YOU WRITE THIS.   Check it with:   .venv/bin/python tests/test_ablation.py
-removing()          already written: attaches hooks so remove_direction() is applied everywhere.
+remove_direction()   A1's edit: the dial reading becomes 0. (Written by Hadi.)
+set_coordinate()     A1b's edit: the dial reading becomes a chosen level.
+removing()           attaches hooks so the edit is applied everywhere inside the model.
 """
 from contextlib import contextmanager
 
@@ -22,25 +23,37 @@ def remove_direction(h: torch.Tensor, r: torch.Tensor) -> torch.Tensor:
     """
     return h - (h @ r.unsqueeze(-1)) * r
 
+
+def set_coordinate(h: torch.Tensor, r: torch.Tensor, level: float) -> torch.Tensor:
+    """A1b: h - (h · r) r + level · r. Everything else stays; the dial reading becomes exactly `level`."""
+    return remove_direction(h, r) + level * r
+
+
 @contextmanager
-def removing(model, r: torch.Tensor):
-    """Inside `with removing(model, r):` the model runs with direction r removed at every layer:
-    from what enters each layer, and from what each layer's attention and MLP parts add."""
+def removing(model, r: torch.Tensor, levels: list[float] | None = None):
+    """Inside `with removing(model, r):` the model runs with direction r removed at every layer (A1).
+    With levels (one per layer), the dial is set to levels[i] as it enters layer i instead (A1b).
+    What each layer's attention and MLP parts add is always cleaned of r, so nothing can move the dial."""
     r = r.to(model.device, model.dtype)
     handles = []
 
-    def on_input(module, args, kwargs):  # just before a layer: clean what enters it
-        if args:
-            return (remove_direction(args[0], r),) + tuple(args[1:]), kwargs
-        return args, {**kwargs, "hidden_states": remove_direction(kwargs["hidden_states"], r)}
+    def on_input(i):  # just before layer i: clean (or set) what enters it
+        def edit(h):
+            return remove_direction(h, r) if levels is None else set_coordinate(h, r, float(levels[i]))
+
+        def hook(module, args, kwargs):
+            if args:
+                return (edit(args[0]),) + tuple(args[1:]), kwargs
+            return args, {**kwargs, "hidden_states": edit(kwargs["hidden_states"])}
+        return hook
 
     def on_output(module, args, output):  # just after attention or MLP: clean what it adds
         if isinstance(output, tuple):
             return (remove_direction(output[0], r),) + tuple(output[1:])
         return remove_direction(output, r)
 
-    for layer in model.model.layers:
-        handles.append(layer.register_forward_pre_hook(on_input, with_kwargs=True))
+    for i, layer in enumerate(model.model.layers):
+        handles.append(layer.register_forward_pre_hook(on_input(i), with_kwargs=True))
         handles.append(layer.self_attn.register_forward_hook(on_output))
         handles.append(layer.mlp.register_forward_hook(on_output))
     try:

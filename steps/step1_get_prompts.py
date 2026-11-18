@@ -4,10 +4,10 @@
 """
 import json
 
-from shared.config import ROOT, load_config
+from shared.config import ROOT, config_from_cli, data_dir
 from shared.prompts import download_advbench, download_alpaca, pick_prompts
 
-cfg = load_config("configs/laptop_qwen05b.yaml")
+cfg, _ = config_from_cli()
 harmful_all, harmless_all = download_advbench(), download_alpaca()
 print(f"AdvBench has {len(harmful_all)} harmful requests; "
       f"Alpaca has {len(harmless_all)} instructions without extra input.")
@@ -18,7 +18,7 @@ for name, items in prompts.items():
     for text in items[:3]:
         print("  -", text)
 
-out = ROOT / "data" / "prompts.json"
+out = data_dir(cfg) / "prompts.json"
 if out.exists():  # groups that existed before must come out identical
     old = json.loads(out.read_text())
     for name in old:

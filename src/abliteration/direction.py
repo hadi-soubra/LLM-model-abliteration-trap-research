@@ -27,3 +27,11 @@ def refusal_directions(harmful: torch.Tensor, harmless: torch.Tensor) -> torch.T
     direction = harmful_avg - harmless_avg  # Step 2: subtract
     direction /= direction.norm(dim=-1, keepdim=True)  # Step 3: normalize each row to length 1
     return direction
+
+
+def harmless_levels(harmless: torch.Tensor, r: torch.Tensor) -> list[float]:
+    """A1b's target: the average dial reading of harmless prompts along r, at the input of every layer.
+
+    harmless: [harmless prompts, layers, numbers per layer] (recorded in step 2); r: one direction, length 1.
+    """
+    return (harmless.float() @ r.float()).mean(dim=0).tolist()

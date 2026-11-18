@@ -22,3 +22,11 @@ The notebook's journal page shows this file (update it with `tools/build_noteboo
 **Built:** step 7, a chat with the normal and the abliterated model side by side; the notebook brought up to date with the new code.
 
 **Key idea:** Experiment 1 is a proof of concept, judged by eye. A2 to A5 only matter against a trap, and the real test needs a capable model, so the next experiment moves to Qwen2.5-1.5B and builds the ruler: a judge for harmful answers and math problems for ability.
+
+## 18 Nov 2026: Night 1 prepared
+
+**Built:** A1b (the dial pinned to the harmless level, live and in the weights), the ruler (HarmBench with a judge, the judge's false alarms on harmless requests, XSTest, GSM8K), one night script that runs the whole baseline on Qwen2.5-7B, a preflight check, and setup instructions for the RTX 5090 PC. Each model now keeps its own data folder.
+
+**Key idea:** the real runs happen on a friend's PC I cannot reach, so every run must be self-contained: it checks itself, continues after an interruption, and sends back only numbers. Raw answers never leave that PC.
+
+**Surprising number:** A1b baked into the weights matches the live hooks to a KL of about 1e-11 in full precision; the dial entering every layer sits within 0.000002 of its harmless level.

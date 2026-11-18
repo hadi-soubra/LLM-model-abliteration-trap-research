@@ -6,7 +6,7 @@ import sys
 
 import torch
 
-from abliteration.ablation import remove_direction
+from abliteration.ablation import remove_direction, set_coordinate
 
 
 def unit(v):
@@ -63,9 +63,19 @@ def input_not_changed():
     assert torch.equal(h, copy), "h was modified in place. Build a new tensor instead of using -= on h."
 
 
+def a1b_sets_level():
+    """A1b: after set_coordinate, every dial reading equals the chosen level, and the rest is untouched"""
+    torch.manual_seed(4)
+    h, r = torch.randn(3, 5, 8), unit(torch.randn(8))
+    out = set_coordinate(h, r, 2.5)
+    assert torch.allclose(out @ r, torch.full((3, 5), 2.5), atol=1e-5), "the dial does not read the level"
+    assert torch.allclose(remove_direction(out, r), remove_direction(h, r), atol=1e-5), "parts not along r changed"
+
+
 if __name__ == "__main__":
     failed = 0
-    for check in [dial_reads_zero, known_answer, rest_untouched, same_shape_any_batch, twice_is_once, input_not_changed]:
+    for check in [dial_reads_zero, known_answer, rest_untouched, same_shape_any_batch, twice_is_once, input_not_changed,
+                  a1b_sets_level]:
         try:
             check()
             print(f"PASS  {check.__doc__}")

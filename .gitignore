@@ -1,4 +1,4 @@
-results/raw/
+results/
 *.safetensors
 *.bin
 *.pt
@@ -10,3 +10,4 @@ __pycache__/
 report/
 *.egg-info/
 data/
+SEND_TO_HADI_*.zip

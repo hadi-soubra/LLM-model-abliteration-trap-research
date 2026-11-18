@@ -7,11 +7,11 @@ import json
 import torch
 
 from abliteration.activations import record_last_word
-from shared.config import ROOT, load_config
+from shared.config import ROOT, config_from_cli, data_dir
 from shared.model import load_model, wrap
 
-cfg = load_config("configs/laptop_qwen05b.yaml")
-prompts = json.loads((ROOT / "data" / "prompts.json").read_text())
+cfg, _ = config_from_cli()
+prompts = json.loads((data_dir(cfg) / "prompts.json").read_text())
 model, tokenizer = load_model(cfg)
 
 print("What the model actually reads for the first harmful prompt:")
@@ -29,5 +29,5 @@ print("\nAverage size (length) of that list of numbers, entering each layer:")
 sizes = acts["harmful"].norm(dim=-1).mean(dim=0).tolist()
 print("  ", "  ".join(f"L{i}:{s:.0f}" for i, s in enumerate(sizes)))
 
-torch.save(acts, ROOT / "data" / "activations.pt")
-print("\nSaved to data/activations.pt")
+torch.save(acts, data_dir(cfg) / "activations.pt")
+print(f"\nSaved to {data_dir(cfg).relative_to(ROOT) / 'activations.pt'}")

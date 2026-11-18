@@ -8,12 +8,12 @@ import torch
 
 from abliteration.ablation import removing
 from abliteration.scoring import adding, first_word_logits, kl_divergence, refusal_score, refusal_token_ids
-from shared.config import ROOT, load_config
+from shared.config import ROOT, config_from_cli, data_dir
 from shared.model import load_model
 
-cfg = load_config("configs/laptop_qwen05b.yaml")
-prompts = json.loads((ROOT / "data" / "prompts.json").read_text())
-acts, arrows = torch.load(ROOT / "data" / "activations.pt"), torch.load(ROOT / "data" / "directions.pt")
+cfg, _ = config_from_cli()
+prompts = json.loads((data_dir(cfg) / "prompts.json").read_text())
+acts, arrows = torch.load(data_dir(cfg) / "activations.pt"), torch.load(data_dir(cfg) / "directions.pt")
 model, tokenizer = load_model(cfg)
 ids, harmful, harmless = refusal_token_ids(tokenizer), prompts["harmful_check"], prompts["harmless_check"]
 first = lambda qs: first_word_logits(model, tokenizer, qs, cfg["batch_size"])  # noqa: E731
@@ -46,7 +46,7 @@ for L, removal, addition, side in rows:
     print(f"{L:5d}   {removal:25.2f}   {addition:22.2f}   {side:29.3f}{mark}")
 print(f"\nRules: layers 1-{last_layer}, addition > 0, side effect < {limit:.3f}")
 if best:
-    (ROOT / "data" / "chosen_layer.json").write_text(json.dumps({"layer": best[0], "side_effect_limit": limit}))
-    print(f"Chosen: the arrow from layer {best[0]}. Saved to data/chosen_layer.json")
+    (data_dir(cfg) / "chosen_layer.json").write_text(json.dumps({"layer": best[0], "side_effect_limit": limit}))
+    print(f"Chosen: the arrow from layer {best[0]}. Saved to {data_dir(cfg).relative_to(ROOT) / 'chosen_layer.json'}")
 else:
     print("No arrow passes the rules.")

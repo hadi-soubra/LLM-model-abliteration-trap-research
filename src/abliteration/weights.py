@@ -20,8 +20,9 @@ def orthogonalize(W: torch.Tensor, r: torch.Tensor) -> torch.Tensor:
 
 
 @torch.no_grad()
-def edit_weights(model, r: torch.Tensor) -> None:
-    """Apply orthogonalize() to every matrix that writes into the running list, in place."""
+def edit_weights(model, r: torch.Tensor, levels: list[float] | None = None) -> None:
+    """A1: apply orthogonalize() to every matrix that writes into the running list, in place.
+    A1b (levels given, one per layer): afterwards, pin the dial to levels[i] at the input of layer i."""
     r = r.to(model.device)
     embedding, output_layer = model.get_input_embeddings(), model.get_output_embeddings()
     if output_layer.weight.data_ptr() == embedding.weight.data_ptr():
@@ -36,3 +37,23 @@ def edit_weights(model, r: torch.Tensor) -> None:
             writer.weight.copy_(orthogonalize(writer.weight, r))
             if writer.bias is not None:
                 writer.bias.copy_(orthogonalize(writer.bias[:, None], r)[:, 0])
+    if levels is not None:
+        _pin_levels(model, r, levels)
+
+
+@torch.no_grad()
+def _pin_levels(model, r: torch.Tensor, levels: list[float]) -> None:
+    """After orthogonalizing, nothing writes along r, so the dial keeps whatever value the embedding gives it.
+    Adding levels[0]·r to every word's embedding sets it at layer 0; a bias of (levels[i+1] - levels[i])·r on
+    layer i's MLP output moves it to the next layer's level. This bakes A1b's hooks into the weights."""
+    rf = r.float()
+    embedding = model.get_input_embeddings()
+    embedding.weight.add_((float(levels[0]) * rf).to(embedding.weight.dtype))
+    layers = model.model.layers
+    for i in range(len(layers) - 1):
+        step = float(levels[i + 1]) - float(levels[i])
+        writer = layers[i].mlp.down_proj
+        if writer.bias is None:  # Qwen's MLP has no bias; give it one (zeros, then the step along r)
+            writer.bias = torch.nn.Parameter(torch.zeros(writer.out_features, dtype=writer.weight.dtype,
+                                                         device=writer.weight.device), requires_grad=False)
+        writer.bias.add_((step * rf).to(writer.bias.dtype))

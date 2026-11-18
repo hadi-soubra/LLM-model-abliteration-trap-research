@@ -5,9 +5,10 @@
 import torch
 
 from abliteration.direction import refusal_directions
-from shared.config import ROOT
+from shared.config import ROOT, config_from_cli, data_dir
 
-acts = torch.load(ROOT / "data" / "activations.pt")
+cfg, _ = config_from_cli()
+acts = torch.load(data_dir(cfg) / "activations.pt")
 harmful, harmless = acts["harmful"], acts["harmless"]
 r = refusal_directions(harmful, harmless)  # your function: [layers, numbers per layer]
 print(f"directions: shape {list(r.shape)}, lengths from {r.norm(dim=-1).min():.3f} to {r.norm(dim=-1).max():.3f}\n")
@@ -25,5 +26,5 @@ for L in range(r.shape[0]):
     print(f"{L:5d}   {h.mean():11.2f}   {b.mean():12.2f}   {h.mean() - b.mean():5.2f}   "
           f"{(h.mean() - b.mean()) / size[L]:10.2f}   {on_side:21.0%}")
 
-torch.save(r, ROOT / "data" / "directions.pt")
-print("\nSaved to data/directions.pt")
+torch.save(r, data_dir(cfg) / "directions.pt")
+print(f"\nSaved to {data_dir(cfg).relative_to(ROOT) / 'directions.pt'}")

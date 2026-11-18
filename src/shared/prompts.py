@@ -55,4 +55,5 @@ def pick_prompts(cfg: dict, harmful_all: list[str], harmless_all: list[str]) -> 
         "watch": harmful[n["n_harmful"] : a],
         "harmful_check": harmful[a : a + n["n_check"]],
         "harmless_check": harmless[n["n_harmless"] : n["n_harmless"] + n["n_check"]],
+        "harmless_eval": harmless[n["n_harmless"] + n["n_check"] : n["n_harmless"] + n["n_check"] + n.get("n_harmless_eval", 0)],
     }
