@@ -1,0 +1,15 @@
+# Settings for running on the laptop (RTX 3050, 6 GB of GPU memory).
+model: Qwen/Qwen2.5-0.5B-Instruct
+device: cuda          # "cuda" = the GPU; use "cpu" if there is no GPU
+dtype: bfloat16       # number format for the weights: half the memory of float32
+seed: 0               # fixes which prompts get picked, so every run picks the same ones
+batch_size: 32        # how many prompts go through the model at once
+
+prompts:
+  n_harmful: 128      # harmful requests (AdvBench) used to find the refusal direction
+  n_harmless: 128     # harmless requests (Alpaca) used to find the refusal direction
+  n_watch: 10         # extra harmful requests, only used to read the model's answers before and after
+  n_check: 32         # new harmful AND new harmless requests, only used to score the candidate arrows (step 4)
+
+choose:                 # step 4: rules for choosing the best arrow
+  max_side_effect: 0.1  # how much removing an arrow may change harmless first-word probabilities (KL); Arditi uses 0.1

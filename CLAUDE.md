@@ -13,10 +13,29 @@ Two-layer defense for small open-weight chat models:
 
 Framing: we do NOT claim abliteration becomes impossible. Open weights can always be fine-tuned. We claim measurable increases in attacker cost and a measurable drop in the attacker's payoff (useful harmful answers) after a successful attack, while the defended model stays useful on normal tasks.
 
-## Go/no-go gates
+## DEADLINES: presentation Nov 24, 2026 (results frozen Nov 21); final paper mid-December 2026. Reduced scope for the presentation, this overrides the rest of this file. After Nov 24, extra experiments for the paper (A3, baselines, repair test) are allowed.
 
-- **Day 3:** A1 abliteration reproduced on the chosen model (refusal drops sharply, GSM8K roughly intact). Eval pipeline produces JSON results.
-- **Day 6:** minimum trap test on Qwen2.5-1.5B (LoRA, collapse loss on harmful prompts under simulated A1 + A1b ablation, direction recomputed every K steps). PASS if best-attack useful-harmful-answer rate is clearly below the undefended model's and clean GSM8K drops by only a few points. FAIL by day 12 means switching to the fallback paper.
+- ONE model: Qwen2.5-1.5B-Instruct (develop on Qwen2.5-0.5B locally on RTX 3060 6GB first).
+- Layer 2 (trap) ONLY. Layer 1 hardness is cited as combinable future work.
+- Baselines: undefended model; ablation "trap trained vs A1 only".
+- Attacks: A1, A1b, A2 (3 rounds), A4 if time. A3/A5/repair test = future work.
+- Schedule:
+  - Nov 14-15: milestone 1 (data, eval, A1, A1b) locally on 0.5B, then on pod with 1.5B.
+  - Nov 16-17: trap training (LoRA) on 1.5B.
+  - Nov 18: GO/NO-GO. PASS if best-attack useful-harmful-answer rate is clearly below undefended and clean GSM8K drops only a few points. FAIL -> negative-result paper (A1 vs A1b on undefended + analysis of why the trap fails).
+  - Nov 19-20: A4, second seed, A3 (Heretic-style search) if time.
+  - Nov 21: FREEZE results, make figures/tables. Nov 22-23: slides + rehearsal. Nov 24: present.
+  - Nov 25 to mid-Dec: extra experiments for the paper (A3, extended-refusal/ART baselines, repair test, maybe a 3B model), then write the paper.
+
+## Working style (IMPORTANT: Hadi is learning, not vibe coding)
+
+- Before writing any component, explain in plain words what it does and why, and wait for "go".
+- Small steps: one function or file at a time, at most ~60 lines per step. No big multi-file dumps.
+- After each step, give Hadi one thing to verify himself (a command to run, a number to check, a line to read) and say what result to expect.
+- Leave the core math for Hadi to write himself (difference of means, projection `h - r r^T h`, weight orthogonalization, the trap loss): give a skeleton with TODOs and a test, then review his version.
+- Every component gets a sanity test he can run, e.g.: the direction has norm 1; after ablation, `h @ r` is ~0; orthogonalized weights give the same output as hook ablation; refusal rate on harmful prompts is high before any attack.
+- Keep a running LEARNING_LOG.md: per session, what was built, the key idea in 2-3 sentences, and any number that surprised us.
+- When something fails, explain the cause before fixing it.
 
 ## Background: how abliteration works
 
