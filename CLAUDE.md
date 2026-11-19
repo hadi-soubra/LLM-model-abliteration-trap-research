@@ -15,14 +15,14 @@ Framing: we do NOT claim abliteration becomes impossible. Open weights can alway
 
 ## Scope and plan (no fixed deadline: Hadi's decision, 19 Nov; take the time each part needs)
 
-- ONE main model: Qwen2.5-7B-Instruct, run overnight on the RTX 5090 (see Hardware). Develop and debug on Qwen2.5-0.5B-Instruct on the laptop first (same family, same code).
+- ONE main model: Qwen3.5-9B, run overnight on the RTX 5090 (see Hardware). Develop and debug on Qwen3.5-0.8B on the laptop first (same family, same code).
 - Layer 2 (trap) ONLY. Layer 1 hardness is cited as combinable future work.
 - Baselines: undefended model; ablation "trap trained vs A1 only".
 - Attacks: trap v1 is trained against A1 + A1b and tested against A1, A1b, A2 (3 rounds) and A4; A3 (Heretic) and A5 if time. Every attack also runs on the undefended model in the same batch. Attacks that get through can go into training for a trap v2.
 - Order of work (the journal page of the notebook tracks status):
-  - Nov 14-17: Experiment 1, A1 rebuilt step by step on 0.5B (proof of concept). Done.
-  - Next: Experiment 2, Qwen2.5-7B + the ruler (judge, GSM8K, XSTest) + baseline: no attack, A1, A1b. Overnight on the 5090.
-  - Then: Experiment 3, the trap: developed on 0.5B on the laptop, trained on 7B overnight. GO/NO-GO on its first result: PASS if best-attack useful-harmful-answer rate is clearly below undefended and clean GSM8K drops only a few points. FAIL -> fallback paper (see Fallback).
+  - Experiment 1: A1 rebuilt step by step on Qwen3.5-0.8B (proof of concept), ending with a chat demo.
+  - Experiment 2: Qwen3.5-9B + the ruler (judge, GSM8K, XSTest) + baseline: no attack, A1, A1b. Overnight on the 5090.
+  - Then: Experiment 3, the trap: developed on 0.8B on the laptop, trained on 9B overnight. GO/NO-GO on its first result: PASS if best-attack useful-harmful-answer rate is clearly below undefended and clean GSM8K drops only a few points. FAIL -> fallback paper (see Fallback).
   - Then: attacks against the trap (A1, A1b, A2, A4; A3, A5 if time).
   - Then: extra experiments for the paper (A3, A5, extended-refusal/ART baselines, repair test, a second model size), figures and tables, and the paper.
 
@@ -91,9 +91,10 @@ Reference: Arditi et al. 2024, "Refusal in Language Models Is Mediated by a Sing
 
 ## Models
 
-- Main: Qwen2.5-7B-Instruct (ungated, same family as the development model).
-- Development: Qwen2.5-0.5B-Instruct on the laptop.
-- Optional second size for the paper: Qwen2.5-1.5B or 3B.
+- Main: Qwen3.5-9B (Feb 2026, Apache-2.0, ungated; 32 layers, 4096 wide, 18 GB in bf16; MMLU-Pro 82.5).
+- Development: Qwen3.5-0.8B on the laptop (24 layers, 1024 wide, tied embeddings).
+- Both are hybrid: most layers use linear attention (`linear_attn`, output `out_proj`), every fourth full attention (`self_attn`, output `o_proj`); both write to the residual stream, so abliteration applies unchanged. Load with AutoModelForCausalLM (text only). Always call the chat template with `enable_thinking=False`.
+- Optional larger check later: Qwen3.8-27B (same architecture; 52 GB in bf16, so only compressed on the 5090 and labelled as such). Optional extra sizes: Qwen3.5-2B or 4B.
 
 ## Data
 
@@ -118,7 +119,7 @@ Reference: Arditi et al. 2024, "Refusal in Language Models Is Mediated by a Sing
 ## Hardware
 
 - Main: a friend's Windows PC with an RTX 5090 (32GB). Hadi has no direct access: runs are prepared as self-contained overnight scripts that the friend starts. Each run ends with one full zip (results, raw answers, prompts, activations, directions, config, code version, environment) that the friend sends privately (never GitHub or group chats), plus a numbers-only summary zip as a fallback.
-- Laptop RTX 3050 (6GB): development, debugging, small-model work (0.5B), the notebook.
+- Laptop RTX 3050 (6GB): development, debugging, small-model work (Qwen3.5-0.8B), the notebook.
 - Backup: RunPod RTX 4090 (24GB) or Kaggle.
 
 ## Engineering conventions

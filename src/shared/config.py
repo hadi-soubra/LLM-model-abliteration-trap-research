@@ -8,18 +8,18 @@ ROOT = Path(__file__).resolve().parents[2]  # the project folder (two levels abo
 
 
 def load_config(path: str) -> dict:
-    """path can be relative to the project folder, e.g. "configs/laptop_qwen05b.yaml"."""
+    """path can be relative to the project folder, e.g. "configs/laptop_qwen35_08b.yaml"."""
     full = Path(path) if Path(path).is_absolute() else ROOT / path
     with open(full) as f:
         cfg = yaml.safe_load(f)
-    cfg["name"] = full.stem  # e.g. "laptop_qwen05b": names this model's data folder
+    cfg["name"] = full.stem  # e.g. "laptop_qwen35_08b": names this model's data folder
     return cfg
 
 
-def config_from_cli(parser: argparse.ArgumentParser | None = None, default: str = "configs/laptop_qwen05b.yaml"):
+def config_from_cli(parser: argparse.ArgumentParser | None = None, default: str = "configs/laptop_qwen35_08b.yaml"):
     """Every step takes --config (default: the laptop model). Returns (config, the other arguments)."""
     parser = parser or argparse.ArgumentParser()
-    parser.add_argument("--config", default=default, help="settings file, e.g. configs/gpu_qwen7b.yaml")
+    parser.add_argument("--config", default=default, help="settings file, e.g. configs/gpu_qwen35_9b.yaml")
     args = parser.parse_args()
     return load_config(args.config), args
 

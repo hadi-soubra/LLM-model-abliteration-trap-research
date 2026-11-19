@@ -11,7 +11,7 @@ model, removes its safety behaviour **in memory only** (nothing modified is save
   don't open or share that folder.
 - **Each run ends with a zip file for Hadi** that contains everything, those raw answers included. Please send it
   to him **privately** (a Google Drive link shared only with him, or WeTransfer), never in a group chat.
-- A run uses the GPU for about **1 to 2 hours**. The first run downloads about **30 GB** of models.
+- A run uses the GPU for about **1 to 2 hours**. The models take about **35 GB** of disk space.
 
 ## One-time setup (30 to 60 minutes, mostly downloading)
 
@@ -41,13 +41,13 @@ model, removes its safety behaviour **in memory only** (nothing modified is save
 7. Check that everything is ready:
    ```powershell
    $env:PYTHONUTF8 = "1"
-   .venv\Scripts\python tools\preflight.py --config configs\gpu_qwen7b.yaml
+   .venv\Scripts\python tools\preflight.py --config configs\gpu_qwen35_9b.yaml
    ```
    The last line should say **`ALL GOOD: ready for the night run.`**
    If it says `FIX THESE FIRST`, send Hadi a screenshot of the output.
-8. Download the models now, so the night run does not have to (about 30 GB; progress bars show the speed):
+8. Download the models now, so the night run does not have to (about 35 GB; progress bars show the speed):
    ```powershell
-   .venv\Scripts\hf download Qwen/Qwen2.5-7B-Instruct
+   .venv\Scripts\hf download Qwen/Qwen3.5-9B
    .venv\Scripts\hf download meta-llama/Llama-Guard-3-1B
    .venv\Scripts\hf download meta-llama/Llama-Guard-3-8B
    ```
@@ -69,14 +69,14 @@ Hadi will tell you which script to run that night (night 1 is below).
 cd $HOME\abl
 git pull
 $env:PYTHONUTF8 = "1"
-.venv\Scripts\python steps\night1_baseline.py --config configs\gpu_qwen7b.yaml
+.venv\Scripts\python steps\night1_baseline.py --config configs\gpu_qwen35_9b.yaml
 ```
 
 - Leave the PowerShell window open. It prints progress lines with the time.
 - **Don't click inside the PowerShell window while it runs.** Windows pauses a program while text in its window is
   selected. If the time on the progress lines stops moving, press `Esc` once and it continues.
 - When it ends, it prints **`FINISHED.`** and the path of a zip file in the project folder, for example
-  `SEND_TO_HADI_gpu_qwen7b_night1_full.zip` (a few hundred MB). Please send Hadi that file **privately**
+  `SEND_TO_HADI_gpu_qwen35_9b_night1_full.zip` (a few hundred MB). Please send Hadi that file **privately**
   (Google Drive shared only with him, or WeTransfer).
 - If that file is too big to send, send the small `..._summary.zip` next to it instead (numbers only).
 - If something goes wrong it prints **`STOPPED`**: please send the same file anyway, it contains the log Hadi needs.
@@ -92,4 +92,4 @@ first, otherwise `Ctrl+C` only copies the text.)
 ```powershell
 .venv\Scripts\hf auth logout
 ```
-Then delete the project folder, and the downloaded models in `C:\Users\<your name>\.cache\huggingface` (about 30 GB).
+Then delete the project folder, and the downloaded models in `C:\Users\<your name>\.cache\huggingface` (about 35 GB).

@@ -1,7 +1,8 @@
-# Settings for running on the laptop (RTX 3050, 6 GB of GPU memory).
-model: Qwen/Qwen2.5-0.5B-Instruct
+# Settings for the GPU PC (RTX 5090, 32 GB of GPU memory).
+model: Qwen/Qwen3.5-9B
 device: cuda          # "cuda" = the GPU; use "cpu" if there is no GPU
 dtype: bfloat16       # number format for the weights: half the memory of float32
+min_gpu_gb: 24        # the preflight check warns below this
 seed: 0               # fixes which prompts get picked, so every run picks the same ones
 batch_size: 32        # how many prompts go through the model at once
 
@@ -20,13 +21,14 @@ decoding:               # how answers are generated in the measurements (Experim
   max_new_tokens: 256
   gsm8k_max_new_tokens: 512  # math answers need room for the working
 
-eval:                   # the ruler; night1_baseline.py --quick cuts every set to 4 questions
-  batch_size: 16
+eval:                   # the ruler
+  batch_size: 64
   n_harmful: 200        # HarmBench
   n_harmless: 100       # Alpaca (the harmless_eval group)
   n_xstest: 250         # XSTest safe questions
   n_gsm8k: 1319         # GSM8K test problems
 
 judge:
-  name: meta-llama/Llama-Guard-3-1B   # the 8B does not fit in 6 GB
-  batch_size: 8
+  name: meta-llama/Llama-Guard-3-8B
+  fallback: meta-llama/Llama-Guard-3-1B   # used if access to the 8B has not been granted
+  batch_size: 32

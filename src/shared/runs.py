@@ -47,6 +47,6 @@ def pack_summary(out: Path, data: Path, zip_path: Path) -> None:
         for f in sorted(out.glob("*")):
             if f.is_file() and f.suffix in (".json", ".md", ".txt", ".yaml") and not f.name.startswith(("step1", "step2")):
                 z.write(f, f.name)
-        for name in ("chosen_layer.json", "directions.pt"):
+        for name in ("chosen_layer.json", "step4_scores.json", "directions.pt"):
             if (data / name).exists():
                 z.write(data / name, name)

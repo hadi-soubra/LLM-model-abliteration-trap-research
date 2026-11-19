@@ -1,6 +1,6 @@
 """Check that this computer is ready for a night run, before starting one.
 
-    .venv\\Scripts\\python tools\\preflight.py --config configs\\gpu_qwen7b.yaml      (GPU PC)
+    .venv\\Scripts\\python tools\\preflight.py --config configs\\gpu_qwen35_9b.yaml      (GPU PC)
     .venv/bin/python tools/preflight.py                                          (laptop)
 
 Prints OK or a plain-language problem for each check, then ALL GOOD or what to fix.
@@ -31,7 +31,7 @@ try:
           "update the NVIDIA driver (an RTX 5090 needs version 570 or newer), then reinstall PyTorch with the cu128 command")
     if gpu:
         gb = torch.cuda.get_device_properties(0).total_memory / 2**30
-        need = 24 if "7B" in cfg["model"] else 4
+        need = cfg.get("min_gpu_gb", 4)
         check("GPU memory", gb >= need, f"{gb:.0f} GB (this config needs about {need} GB)")
         check("bf16 support", torch.cuda.is_bf16_supported(), "supported" if torch.cuda.is_bf16_supported() else "missing")
         x = torch.randn(512, 512, device="cuda", dtype=torch.bfloat16)

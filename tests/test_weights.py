@@ -7,7 +7,7 @@ import sys
 import torch
 
 from abliteration.ablation import remove_direction
-from abliteration.weights import orthogonalize
+from abliteration.weights import orthogonalize, orthogonalize_in_place
 
 
 def unit(v):
@@ -46,9 +46,23 @@ def keeps_shape_and_format():
     assert out.shape == W.shape and out.dtype == torch.bfloat16 and torch.equal(W, copy)
 
 
+def slices_give_same_result():
+    """editing in slices (to save memory on big matrices) gives exactly the same matrix, also for a transposed view"""
+    torch.manual_seed(3)
+    W, r = torch.randn(8, 50), unit(torch.randn(8))
+    sliced = W.clone()
+    orthogonalize_in_place(sliced, r, slice_size=7)
+    assert torch.allclose(sliced, orthogonalize(W, r), atol=1e-6)
+    E = torch.randn(50, 8)  # like an embedding: one row per word
+    E_edit = E.clone()
+    orthogonalize_in_place(E_edit.T, r, slice_size=7)
+    assert torch.allclose(E_edit.T, orthogonalize(E.T, r), atol=1e-6), "editing through a transposed view failed"
+
+
 if __name__ == "__main__":
     failed = 0
-    for check in [blind_along_r, same_as_removing_afterwards, rest_untouched, keeps_shape_and_format]:
+    for check in [blind_along_r, same_as_removing_afterwards, rest_untouched, keeps_shape_and_format,
+                  slices_give_same_result]:
         try:
             check()
             print(f"PASS  {check.__doc__}")

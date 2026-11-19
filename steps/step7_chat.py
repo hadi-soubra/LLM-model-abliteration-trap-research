@@ -25,6 +25,7 @@ prompts = json.loads((data_dir(cfg) / "prompts.json").read_text())
 layer = json.loads((data_dir(cfg) / "chosen_layer.json").read_text())["layer"]
 r = torch.load(data_dir(cfg) / "directions.pt")[layer]
 model, tokenizer = load_model(cfg)
+penalty = cfg["decoding"]["repetition_penalty"]  # the same decoding as every measurement
 gpu = threading.Lock()  # one answer at a time: there is one model on the GPU
 
 
@@ -50,9 +51,9 @@ class Handler(SimpleHTTPRequestHandler):
             with gpu:
                 if req["version"] == "abliterated":
                     with removing(model, r):
-                        answer = chat_reply(model, tokenizer, req["messages"], n)
+                        answer = chat_reply(model, tokenizer, req["messages"], n, penalty)
                 else:
-                    answer = chat_reply(model, tokenizer, req["messages"], n)
+                    answer = chat_reply(model, tokenizer, req["messages"], n, penalty)
             self.send_json({"answer": answer})
         except Exception as e:  # show the problem on the page instead of failing silently
             self.send_json({"error": f"{type(e).__name__}: {e}"})

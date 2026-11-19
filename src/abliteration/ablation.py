@@ -8,6 +8,8 @@ from contextlib import contextmanager
 
 import torch
 
+from shared.model import attention_of
+
 
 def remove_direction(h: torch.Tensor, r: torch.Tensor) -> torch.Tensor:
     """Remove the part of h that lies along the direction r.
@@ -54,7 +56,7 @@ def removing(model, r: torch.Tensor, levels: list[float] | None = None):
 
     for i, layer in enumerate(model.model.layers):
         handles.append(layer.register_forward_pre_hook(on_input(i), with_kwargs=True))
-        handles.append(layer.self_attn.register_forward_hook(on_output))
+        handles.append(attention_of(layer).register_forward_hook(on_output))
         handles.append(layer.mlp.register_forward_hook(on_output))
     try:
         yield

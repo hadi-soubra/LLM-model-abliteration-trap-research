@@ -13,7 +13,7 @@ VIRTUAL_ENV=.venv uv pip install -e .
 ## Layout
 
 ```
-configs/                      one settings file per model: laptop_qwen05b.yaml, gpu_qwen7b.yaml
+configs/                      one settings file per model: laptop_qwen35_08b.yaml, gpu_qwen35_9b.yaml
 src/shared/                   config, model loading and chat template, generation, prompts
 src/abliteration/             activations, refusal direction, A1 and A1b (live and in the weights), scoring
 src/evaluation/               the ruler: test sets, judge, GSM8K scoring, summaries
@@ -28,19 +28,20 @@ report/                       the research notebook (gitignored: it holds raw mo
 
 The first version of the code is kept on the git branch `first-pass`.
 
-## Experiment 1: abliteration on the laptop (Qwen2.5-0.5B)
+## Experiment 1: abliteration on the laptop (Qwen3.5-0.8B)
 
 ```bash
 .venv/bin/python steps/step1_get_prompts.py          # harmful (AdvBench) and harmless (Alpaca) prompts -> data/<config>/prompts.json
 .venv/bin/python steps/step2_record_activations.py   # internal state at every layer -> data/<config>/activations.pt
 .venv/bin/python steps/step3_find_direction.py       # one refusal direction per layer -> data/<config>/directions.pt
-.venv/bin/python steps/step4_choose_layer.py         # score every direction, choose one -> data/<config>/chosen_layer.json
+.venv/bin/python steps/step4_choose_layer.py         # score every direction, choose one -> chosen_layer.json, step4_scores.json
+.venv/bin/python steps/step4_check_first_words.py   # optional: how the normal model starts its answers to harmful prompts
 .venv/bin/python steps/step5_remove_live.py          # remove it while the model runs, answers before and after
 .venv/bin/python steps/step6_edit_weights.py         # bake the removal into the weights, compare with step 5
 .venv/bin/python steps/step7_chat.py                 # chat: http://localhost:8000/exp1-local.html#chat
 ```
 
-Every step takes `--config` (default `configs/laptop_qwen05b.yaml`).
+Every step takes `--config` (default `configs/laptop_qwen35_08b.yaml`).
 
 Checks for the math: `.venv/bin/python tests/test_direction.py`, `tests/test_ablation.py`, `tests/test_weights.py`.
 
@@ -48,11 +49,11 @@ Abliterated weights are never saved: every edit lives in memory only.
 
 ## Experiment 2: the baseline (overnight on the RTX 5090)
 
-See `GPU_PC_INSTRUCTIONS.md` for the Windows setup. One command runs steps 1 to 4 on Qwen2.5-7B, then the ruler on
-the model with no attack, A1 and A1b, and writes `SEND_TO_HADI_gpu_qwen7b_night1.zip` (numbers and logs only):
+See `GPU_PC_INSTRUCTIONS.md` for the Windows setup. One command runs steps 1 to 4 on Qwen3.5-9B, then the ruler on
+the model with no attack, A1 and A1b, and writes `SEND_TO_HADI_gpu_qwen35_9b_night1_full.zip` (everything; send it privately):
 
 ```bash
-python steps/night1_baseline.py --config configs/gpu_qwen7b.yaml
+python steps/night1_baseline.py --config configs/gpu_qwen35_9b.yaml
 python steps/night1_baseline.py --quick        # laptop rehearsal: 4 questions per test set
 ```
 

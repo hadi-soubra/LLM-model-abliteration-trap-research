@@ -6,6 +6,8 @@ The edited weights live only in memory; they are never saved.
 """
 import torch
 
+from shared.model import attention_writer
+
 
 def orthogonalize(W: torch.Tensor, r: torch.Tensor) -> torch.Tensor:
     """W - r (rᵀ W): remove the r-part from everything the matrix W can write.
@@ -20,8 +22,18 @@ def orthogonalize(W: torch.Tensor, r: torch.Tensor) -> torch.Tensor:
 
 
 @torch.no_grad()
+def orthogonalize_in_place(W: torch.Tensor, r: torch.Tensor, slice_size: int = 8192) -> None:
+    """The same edit as orthogonalize(), applied to W directly, a slice of columns at a time.
+    Only one slice is ever converted to float32, so even a huge embedding needs little extra memory."""
+    rf = r.float()
+    for start in range(0, W.shape[1], slice_size):
+        part = W[:, start:start + slice_size].float()
+        W[:, start:start + slice_size] = (part - torch.outer(rf, rf @ part)).to(W.dtype)
+
+
+@torch.no_grad()
 def edit_weights(model, r: torch.Tensor, levels: list[float] | None = None) -> None:
-    """A1: apply orthogonalize() to every matrix that writes into the running list, in place.
+    """A1: apply the edit to every matrix that writes into the running list, in place.
     A1b (levels given, one per layer): afterwards, pin the dial to levels[i] at the input of layer i."""
     r = r.to(model.device)
     embedding, output_layer = model.get_input_embeddings(), model.get_output_embeddings()
@@ -31,10 +43,10 @@ def edit_weights(model, r: torch.Tensor, levels: list[float] | None = None) -> N
         output_layer.weight = torch.nn.Parameter(embedding.weight.detach().clone(), requires_grad=False)
         model.config.tie_word_embeddings = False
     # The embedding stores one row per word ([vocabulary, numbers]); transposed, its columns are what it writes.
-    embedding.weight.copy_(orthogonalize(embedding.weight.T, r).T)
+    orthogonalize_in_place(embedding.weight.T, r)
     for layer in model.model.layers:
-        for writer in (layer.self_attn.o_proj, layer.mlp.down_proj):  # attention output, MLP output
-            writer.weight.copy_(orthogonalize(writer.weight, r))
+        for writer in (attention_writer(layer), layer.mlp.down_proj):  # attention output, MLP output
+            orthogonalize_in_place(writer.weight, r)
             if writer.bias is not None:
                 writer.bias.copy_(orthogonalize(writer.bias[:, None], r)[:, 0])
     if levels is not None:

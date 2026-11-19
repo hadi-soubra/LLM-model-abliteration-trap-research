@@ -19,8 +19,9 @@ ids, harmful, harmless = refusal_token_ids(tokenizer), prompts["harmful_check"],
 first = lambda qs: first_word_logits(model, tokenizer, qs, cfg["batch_size"])  # noqa: E731
 
 normal_harmless = first(harmless)
-print(f"Normal model, refusal score: {refusal_score(first(harmful), ids).mean():.2f} on harmful check prompts, "
-      f"{refusal_score(normal_harmless, ids).mean():.2f} on harmless ones\n")
+normal = {"harmful": refusal_score(first(harmful), ids).mean().item(), "harmless": refusal_score(normal_harmless, ids).mean().item()}
+halfway = (normal["harmful"] + normal["harmless"]) / 2  # addition must lift harmless prompts at least this far
+print(f"Normal model, refusal score: {normal['harmful']:.2f} on harmful check prompts, {normal['harmless']:.2f} on harmless ones\n")
 
 rows = []
 for L in range(1, len(arrows)):  # layer 0 has no arrow
@@ -31,22 +32,29 @@ for L in range(1, len(arrows)):  # layer 0 has no arrow
         side = kl_divergence(normal_harmless, first(harmless)).mean().item()
     with adding(model, L, gap * r):  # push harmless prompts toward the harmful side at this one layer
         addition = refusal_score(first(harmless), ids).mean().item()
-    rows.append((L, removal, addition, side))
+    rows.append({"layer": L, "removal": removal, "addition": addition, "side_effect": side})
 
-# Arditi's rule: skip the last 20% of layers; adding must cause refusal; removing must barely change harmless prompts
+# rules: skip the last 20% of layers (Arditi et al.); adding must move harmless prompts at least halfway to the harmful
+# ones; removing must barely change harmless prompts. Loosen the side-effect limit only if it is what blocks every arrow.
 last_layer, limit = int(0.8 * len(arrows)) - 1, cfg["choose"]["max_side_effect"]
-passing = lambda lim: [x for x in rows if x[0] <= last_layer and x[2] > 0 and x[3] < lim]  # noqa: E731
-while not passing(limit) and limit < 1.0:
-    limit *= 1.5  # small models are fragile: loosen the side-effect limit step by step if nothing passes
-best = min(passing(limit), key=lambda x: x[1]) if passing(limit) else None
+fails = lambda x, lim: [why for why, bad in (("layer", x["layer"] > last_layer), ("addition", x["addition"] <= halfway),  # noqa: E731
+                                              ("side effect", x["side_effect"] >= lim)) if bad]
+blocked_by_side_effect_only = lambda lim: any(fails(x, lim) == ["side effect"] for x in rows)  # noqa: E731
+while not any(not fails(x, limit) for x in rows) and blocked_by_side_effect_only(limit) and limit < 1.0:
+    limit *= 1.5
+passing = [x for x in rows if not fails(x, limit)]
+fallback = not passing  # unattended runs must not stop here: take the best allowed layer, and say so loudly
+pool = passing or [x for x in rows if x["layer"] <= last_layer]
+best = min(pool, key=lambda x: x["removal"])
 
-print("layer   removal (lower is better)   addition (must be > 0)   side effect (lower is better)")
-for L, removal, addition, side in rows:
-    mark = "  <- chosen" if best and L == best[0] else ("" if (L, removal, addition, side) in passing(limit) else "  (fails)")
-    print(f"{L:5d}   {removal:25.2f}   {addition:22.2f}   {side:29.3f}{mark}")
-print(f"\nRules: layers 1-{last_layer}, addition > 0, side effect < {limit:.3f}")
-if best:
-    (data_dir(cfg) / "chosen_layer.json").write_text(json.dumps({"layer": best[0], "side_effect_limit": limit}))
-    print(f"Chosen: the arrow from layer {best[0]}. Saved to {data_dir(cfg).relative_to(ROOT) / 'chosen_layer.json'}")
-else:
-    print("No arrow passes the rules.")
+print("layer   removal (lower is better)   addition (higher is better)   side effect (lower is better)")
+for x in rows:
+    mark = "  <- chosen" if x is best else ("" if x in passing else "  (fails: " + ", ".join(fails(x, limit)) + ")")
+    print(f"{x['layer']:5d}   {x['removal']:25.2f}   {x['addition']:27.2f}   {x['side_effect']:29.3f}{mark}")
+print(f"\nRules: layers 1-{last_layer}, addition > {halfway:.2f} (halfway from harmless to harmful), side effect < {limit:.3f}")
+if fallback:
+    print("WARNING: no arrow passes every rule; chose the allowed layer with the best removal anyway")
+result = {"layer": best["layer"], "side_effect_limit": limit, "addition_threshold": halfway, "fallback": fallback}
+(data_dir(cfg) / "chosen_layer.json").write_text(json.dumps(result))
+(data_dir(cfg) / "step4_scores.json").write_text(json.dumps({"normal": normal, **result, "last_layer": last_layer, "rows": rows}, indent=1))
+print(f"Chosen: the arrow from layer {best['layer']}. Saved to {data_dir(cfg).relative_to(ROOT) / 'chosen_layer.json'}")

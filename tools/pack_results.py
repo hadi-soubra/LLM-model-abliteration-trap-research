@@ -1,6 +1,6 @@
 """Build the zips to send back from any run folder, for example a run made before the full zip existed.
 
-    .venv\\Scripts\\python tools\\pack_results.py --config configs\\gpu_qwen7b.yaml --run night1
+    .venv\\Scripts\\python tools\\pack_results.py --config configs\\gpu_qwen35_9b.yaml --run night1
 """
 import argparse
 import sys

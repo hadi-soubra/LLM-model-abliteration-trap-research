@@ -17,10 +17,27 @@ def load_model(cfg: dict):
     return model, tokenizer
 
 
+def attention_of(layer):
+    """A layer's attention part. Qwen3.5 has two kinds: full attention ("self_attn") in some layers and
+    linear attention ("linear_attn") in the others. Both add their output to the running state."""
+    return layer.self_attn if hasattr(layer, "self_attn") else layer.linear_attn
+
+
+def attention_writer(layer):
+    """The matrix that writes the attention part's output into the running state ("o_proj" or "out_proj")."""
+    attention = attention_of(layer)
+    return attention.o_proj if hasattr(attention, "o_proj") else attention.out_proj
+
+
+def chat_text(tokenizer, messages: list[dict]) -> str:
+    """A conversation in the model's chat template, ending where the assistant's answer begins.
+    Thinking is turned off: Qwen3.5 would otherwise write out long reasoning before every answer."""
+    return tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True, enable_thinking=False)
+
+
 def wrap(tokenizer, question: str) -> str:
-    """Put a question into the chat template, ending exactly where the assistant's answer begins."""
-    messages = [{"role": "user", "content": question}]
-    return tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+    """Put a single question into the chat template."""
+    return chat_text(tokenizer, [{"role": "user", "content": question}])
 
 
 @torch.no_grad()
@@ -35,12 +52,12 @@ def generate(model, tokenizer, questions: list[str], max_new_tokens: int = 128) 
 
 
 @torch.no_grad()
-def chat_reply(model, tokenizer, messages: list[dict], max_new_tokens: int = 256) -> str:
+def chat_reply(model, tokenizer, messages: list[dict], max_new_tokens: int = 256,
+               repetition_penalty: float = 1.0) -> str:
     """One greedy answer to a whole conversation: a list of {"role": "user" or "assistant", "content": ...}."""
-    text = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-    batch = tokenizer([text], return_tensors="pt", add_special_tokens=False).to(model.device)
+    batch = tokenizer([chat_text(tokenizer, messages)], return_tensors="pt", add_special_tokens=False).to(model.device)
     out = model.generate(**batch, max_new_tokens=max_new_tokens, do_sample=False, temperature=None, top_p=None,
-                         top_k=None, repetition_penalty=1.0, pad_token_id=tokenizer.pad_token_id)
+                         top_k=None, repetition_penalty=repetition_penalty, pad_token_id=tokenizer.pad_token_id)
     return tokenizer.decode(out[0, batch["input_ids"].shape[1]:], skip_special_tokens=True).strip()
 
 

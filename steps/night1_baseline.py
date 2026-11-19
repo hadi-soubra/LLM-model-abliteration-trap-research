@@ -1,7 +1,7 @@
 """Night 1 (Experiment 2): the baseline. The model with no attack, after A1, and after A1b (two versions),
 each measured with the ruler (judge on HarmBench, false alarms on harmless requests, XSTest, GSM8K).
 
-    GPU PC:          .venv\\Scripts\\python steps\\night1_baseline.py --config configs\\gpu_qwen7b.yaml
+    GPU PC:          .venv\\Scripts\\python steps\\night1_baseline.py --config configs\\gpu_qwen35_9b.yaml
     laptop rehearsal: .venv/bin/python steps/night1_baseline.py --quick      (4 questions per test set)
 
 If it stops halfway, run the same command again: finished parts are skipped.
