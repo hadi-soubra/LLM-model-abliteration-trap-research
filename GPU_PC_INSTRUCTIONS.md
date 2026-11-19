@@ -73,6 +73,8 @@ $env:PYTHONUTF8 = "1"
 ```
 
 - Leave the PowerShell window open. It prints progress lines with the time.
+- Lines saying something "is falling back to its reference PyTorch implementation ... install ..." are normal.
+  Don't install anything; the run works without it, just a bit slower.
 - **Don't click inside the PowerShell window while it runs.** Windows pauses a program while text in its window is
   selected. If the time on the progress lines stops moving, press `Esc` once and it continues.
 - When it ends, it prints **`FINISHED.`** and the path of a zip file in the project folder, for example
