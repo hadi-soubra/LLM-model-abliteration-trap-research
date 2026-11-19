@@ -5,7 +5,8 @@ each measured with the ruler (judge on HarmBench, false alarms on harmless reque
     laptop rehearsal: .venv/bin/python steps/night1_baseline.py --quick      (4 questions per test set)
 
 If it stops halfway, run the same command again: finished parts are skipped.
-At the end it writes SEND_TO_HADI_<config>_night1.zip: numbers and logs only. Raw answers stay in results/.../raw/.
+At the end it writes SEND_TO_HADI_<config>_night1_full.zip (everything, including raw answers: send it privately)
+and SEND_TO_HADI_<config>_night1_summary.zip (numbers only).
 """
 import argparse
 import datetime as dt
@@ -16,7 +17,6 @@ import subprocess
 import sys
 import time
 import traceback
-import zipfile
 
 import torch
 
@@ -27,6 +27,7 @@ from evaluation.judge import load_judge
 from evaluation.testsets import load_testsets
 from shared.config import ROOT, config_from_cli, data_dir
 from shared.model import load_model
+from shared.runs import pack_full, pack_summary, write_environment
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")  # Windows consoles otherwise crash on some characters
 parser = argparse.ArgumentParser()
@@ -37,7 +38,8 @@ if args.quick:
 out = ROOT / "results" / cfg["name"] / ("night1_quick" if args.quick else "night1")
 raw = out / "raw"  # raw answers include harmful text: they never leave this computer
 raw.mkdir(parents=True, exist_ok=True)
-zip_path = ROOT / f"SEND_TO_HADI_{cfg['name']}_night1{'_quick' if args.quick else ''}.zip"
+tag = f"SEND_TO_HADI_{cfg['name']}_night1{'_quick' if args.quick else ''}"
+full_zip, summary_zip = ROOT / f"{tag}_full.zip", ROOT / f"{tag}_summary.zip"
 log_file = open(out / "log.txt", "a", encoding="utf-8")
 seconds = {}
 
@@ -49,15 +51,16 @@ def log(message: str) -> None:
     log_file.flush()
 
 
-def make_zip() -> None:
-    """Numbers, tables and logs only: no prompts, no answers."""
-    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as z:
-        for f in sorted(out.glob("*")):
-            if f.is_file() and f.suffix in (".json", ".md", ".txt") and not f.name.startswith(("step1", "step2")):
-                z.write(f, f.name)
-        for f in ("chosen_layer.json", "directions.pt"):
-            if (data_dir(cfg) / f).exists():
-                z.write(data_dir(cfg) / f, f)
+def make_zips() -> None:
+    pack_summary(out, data_dir(cfg), summary_zip)
+    pack_full(out, data_dir(cfg), full_zip)
+
+
+def tell_what_to_send(headline: str) -> None:
+    mb = full_zip.stat().st_size / 1e6
+    log(f"{headline}\nPlease send Hadi this file PRIVATELY (Google Drive shared only with him, or WeTransfer), "
+        f"because it contains the model's raw answers:\n    {full_zip}   ({mb:.0f} MB)\n"
+        f"If it is too big to send, send this small one instead (numbers only):\n    {summary_zip}")
 
 
 def run_step(step: str, result_file: str) -> None:
@@ -79,6 +82,7 @@ def run_step(step: str, result_file: str) -> None:
 
 
 def main() -> None:
+    write_environment(out, args.config)
     log(f"Night 1 on {cfg['model']} | GPU: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'none'}")
     for step, result in [("step1_get_prompts", "prompts.json"), ("step2_record_activations", "activations.pt"),
                          ("step3_find_direction", "directions.pt"), ("step4_choose_layer", "chosen_layer.json")]:
@@ -142,10 +146,10 @@ def main() -> None:
 
 try:
     main()
-    make_zip()
-    log(f"FINISHED. Please send this file to Hadi: {zip_path}")
+    make_zips()
+    tell_what_to_send("FINISHED.")
 except Exception:
     log("STOPPED because of an error:\n" + traceback.format_exc())
-    make_zip()
-    log(f"Please send this file to Hadi (it contains the log): {zip_path}")
+    make_zips()
+    tell_what_to_send("The files below contain the log of what went wrong.")
     sys.exit(1)

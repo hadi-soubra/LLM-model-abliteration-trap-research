@@ -19,10 +19,10 @@ src/abliteration/             activations, refusal direction, A1 and A1b (live a
 src/evaluation/               the ruler: test sets, judge, GSM8K scoring, summaries
 steps/                        Experiment 1 steps, and the overnight runs (night1_baseline.py)
 tests/                        checks for the math
-tools/                        preflight.py (is this computer ready?), build_notebook.py
+tools/                        preflight.py (is this computer ready?), pack_results.py (rebuild the zips), build_notebook.py
 GPU_PC_INSTRUCTIONS.md        setup and run instructions for the RTX 5090 PC
 data/<config>/                per model: prompts, activations, directions, chosen layer (gitignored)
-results/<config>/             per night run: summary, logs, raw answers (gitignored; raw answers never leave the PC)
+results/<config>/             per night run: summary, logs, raw answers, environment (gitignored; sent back privately as a full zip)
 report/                       the research notebook (gitignored: it holds raw model outputs)
 ```
 

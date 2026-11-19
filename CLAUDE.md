@@ -2,7 +2,7 @@
 
 COE749 Advanced Large Language Models, LAU, Fall 2026 (Dr. Samer Saab Jr).
 Deliverable: publication-style paper (Intro, Contributions, Related Work, Method, Experiments, Discussion, Conclusion) plus code.
-Implementation budget: ~20 days. Topic approved by the instructor.
+Topic approved by the instructor. No fixed deadline.
 
 ## Goal
 
@@ -13,19 +13,18 @@ Two-layer defense for small open-weight chat models:
 
 Framing: we do NOT claim abliteration becomes impossible. Open weights can always be fine-tuned. We claim measurable increases in attacker cost and a measurable drop in the attacker's payoff (useful harmful answers) after a successful attack, while the defended model stays useful on normal tasks.
 
-## DEADLINES: presentation Nov 24, 2026 (results frozen Nov 21); final paper mid-December 2026. Reduced scope for the presentation, this overrides the rest of this file. After Nov 24, extra experiments for the paper (A3, baselines, repair test) are allowed.
+## Scope and plan (no fixed deadline: Hadi's decision, 19 Nov; take the time each part needs)
 
 - ONE main model: Qwen2.5-7B-Instruct, run overnight on the RTX 5090 (see Hardware). Develop and debug on Qwen2.5-0.5B-Instruct on the laptop first (same family, same code).
 - Layer 2 (trap) ONLY. Layer 1 hardness is cited as combinable future work.
 - Baselines: undefended model; ablation "trap trained vs A1 only".
 - Attacks: trap v1 is trained against A1 + A1b and tested against A1, A1b, A2 (3 rounds) and A4; A3 (Heretic) and A5 if time. Every attack also runs on the undefended model in the same batch. Attacks that get through can go into training for a trap v2.
-- Schedule (current plan; the journal page of the notebook tracks status):
+- Order of work (the journal page of the notebook tracks status):
   - Nov 14-17: Experiment 1, A1 rebuilt step by step on 0.5B (proof of concept). Done.
   - Next: Experiment 2, Qwen2.5-7B + the ruler (judge, GSM8K, XSTest) + baseline: no attack, A1, A1b. Overnight on the 5090.
   - Then: Experiment 3, the trap: developed on 0.5B on the laptop, trained on 7B overnight. GO/NO-GO on its first result: PASS if best-attack useful-harmful-answer rate is clearly below undefended and clean GSM8K drops only a few points. FAIL -> fallback paper (see Fallback).
   - Then: attacks against the trap (A1, A1b, A2, A4; A3, A5 if time).
-  - Nov 21: FREEZE results, make figures/tables. Nov 22-23: slides + rehearsal. Nov 24: present.
-  - Nov 25 to mid-Dec: extra experiments for the paper (A3, A5, extended-refusal/ART baselines, repair test, a second model size), then write the paper.
+  - Then: extra experiments for the paper (A3, A5, extended-refusal/ART baselines, repair test, a second model size), figures and tables, and the paper.
 
 ## Working style (IMPORTANT: Hadi is learning, not vibe coding)
 
@@ -118,7 +117,7 @@ Reference: Arditi et al. 2024, "Refusal in Language Models Is Mediated by a Sing
 
 ## Hardware
 
-- Main: a friend's Windows PC with an RTX 5090 (32GB). Hadi has no direct access: runs are prepared as self-contained overnight scripts that the friend starts. Raw generations stay on that PC; only numbers and charts are sent back.
+- Main: a friend's Windows PC with an RTX 5090 (32GB). Hadi has no direct access: runs are prepared as self-contained overnight scripts that the friend starts. Each run ends with one full zip (results, raw answers, prompts, activations, directions, config, code version, environment) that the friend sends privately (never GitHub or group chats), plus a numbers-only summary zip as a fallback.
 - Laptop RTX 3050 (6GB): development, debugging, small-model work (0.5B), the notebook.
 - Backup: RunPod RTX 4090 (24GB) or Kaggle.
 

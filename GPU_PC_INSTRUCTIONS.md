@@ -7,9 +7,10 @@ Thank you for lending the GPU. This page has everything needed: a one-time setup
 A university research project (COE749, LAU) on the safety of open AI language models. Each run loads an open
 model, removes its safety behaviour **in memory only** (nothing modified is saved), and measures how it responds.
 
-- **The model's raw answers stay on your PC** in `results\...\raw\`. Some of them answer harmful requests,
-  so please don't open or share that folder.
-- **Only a small zip file with numbers goes back to Hadi.**
+- **The model's raw answers** are saved in `results\...\raw\`. Some of them answer harmful requests, so please
+  don't open or share that folder.
+- **Each run ends with a zip file for Hadi** that contains everything, those raw answers included. Please send it
+  to him **privately** (a Google Drive link shared only with him, or WeTransfer), never in a group chat.
 - A run uses the GPU for about **1 to 2 hours**. The first run downloads about **30 GB** of models.
 
 ## One-time setup (30 to 60 minutes, mostly downloading)
@@ -74,9 +75,11 @@ $env:PYTHONUTF8 = "1"
 - Leave the PowerShell window open. It prints progress lines with the time.
 - **Don't click inside the PowerShell window while it runs.** Windows pauses a program while text in its window is
   selected. If the time on the progress lines stops moving, press `Esc` once and it continues.
-- When it ends, it prints **`FINISHED. Please send this file to Hadi:`** followed by the path of a zip file
-  (for example `SEND_TO_HADI_gpu_qwen7b_night1.zip` in the project folder). Please send Hadi that file. It is small.
-- If it prints **`STOPPED`**, please send the same zip anyway: it contains the log Hadi needs.
+- When it ends, it prints **`FINISHED.`** and the path of a zip file in the project folder, for example
+  `SEND_TO_HADI_gpu_qwen7b_night1_full.zip` (a few hundred MB). Please send Hadi that file **privately**
+  (Google Drive shared only with him, or WeTransfer).
+- If that file is too big to send, send the small `..._summary.zip` next to it instead (numbers only).
+- If something goes wrong it prints **`STOPPED`**: please send the same file anyway, it contains the log Hadi needs.
 
 **If it gets interrupted** (power cut, Windows update, window closed), just run the same commands again.
 Finished parts are skipped, and it continues where it stopped.
