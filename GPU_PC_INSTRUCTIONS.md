@@ -20,11 +20,11 @@ model, removes its safety behaviour **in memory only** (nothing modified is save
    ```powershell
    powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
    ```
-4. Download the project:
+4. Download the project into a folder with a short name, `abl` (long folder paths can break the install on Windows):
    ```powershell
    cd $HOME
-   git clone https://github.com/hadi-soubra/LLM-model-abliteration-trap-research.git
-   cd LLM-model-abliteration-trap-research
+   git clone https://github.com/hadi-soubra/LLM-model-abliteration-trap-research.git abl
+   cd abl
    ```
 5. Install Python and everything the project needs (a few minutes):
    ```powershell
@@ -44,24 +44,36 @@ model, removes its safety behaviour **in memory only** (nothing modified is save
    ```
    The last line should say **`ALL GOOD: ready for the night run.`**
    If it says `FIX THESE FIRST`, send Hadi a screenshot of the output.
+8. Download the models now, so the night run does not have to (about 30 GB; progress bars show the speed):
+   ```powershell
+   .venv\Scripts\hf download Qwen/Qwen2.5-7B-Instruct
+   .venv\Scripts\hf download meta-llama/Llama-Guard-3-1B
+   .venv\Scripts\hf download meta-llama/Llama-Guard-3-8B
+   ```
+   If the last command says **`Access denied ... requires approval`**, that is fine: skip it, and the run uses the
+   smaller judge.
 
 ## Before each night run
 
-**Stop the PC from sleeping.** Settings > System > Power > set *Sleep* to **Never** while plugged in. A sleeping PC
-stops the run. You can change it back afterwards.
+- **Stop the PC from sleeping:** Settings > System > Power > set *Sleep* to **Never** while plugged in.
+- **Pause Windows Update for the night:** Settings > Windows Update > *Pause updates*. An update restart stops the run.
+
+You can change both back afterwards.
 
 ## Each night run
 
 Hadi will tell you which script to run that night (night 1 is below).
 
 ```powershell
-cd $HOME\LLM-model-abliteration-trap-research
+cd $HOME\abl
 git pull
 $env:PYTHONUTF8 = "1"
 .venv\Scripts\python steps\night1_baseline.py --config configs\gpu_qwen7b.yaml
 ```
 
 - Leave the PowerShell window open. It prints progress lines with the time.
+- **Don't click inside the PowerShell window while it runs.** Windows pauses a program while text in its window is
+  selected. If the time on the progress lines stops moving, press `Esc` once and it continues.
 - When it ends, it prints **`FINISHED. Please send this file to Hadi:`** followed by the path of a zip file
   (for example `SEND_TO_HADI_gpu_qwen7b_night1.zip` in the project folder). Please send Hadi that file. It is small.
 - If it prints **`STOPPED`**, please send the same zip anyway: it contains the log Hadi needs.
@@ -69,7 +81,8 @@ $env:PYTHONUTF8 = "1"
 **If it gets interrupted** (power cut, Windows update, window closed), just run the same commands again.
 Finished parts are skipped, and it continues where it stopped.
 
-**To stop a run on purpose:** click the PowerShell window and press `Ctrl+C`.
+**To stop a run on purpose:** press `Ctrl+C` in the PowerShell window. (If some text is highlighted, press `Esc`
+first, otherwise `Ctrl+C` only copies the text.)
 
 ## When the project is over
 

@@ -28,7 +28,7 @@ try:
     import torch
     gpu = torch.cuda.is_available()
     check("GPU visible to PyTorch", gpu, torch.cuda.get_device_name(0) if gpu else "no GPU found",
-          "reinstall PyTorch with the cu128 command from the instructions")
+          "update the NVIDIA driver (an RTX 5090 needs version 570 or newer), then reinstall PyTorch with the cu128 command")
     if gpu:
         gb = torch.cuda.get_device_properties(0).total_memory / 2**30
         need = 24 if "7B" in cfg["model"] else 4
